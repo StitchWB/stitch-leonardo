@@ -1,0 +1,1 @@
+"""stitch-leonardo service plugin."""

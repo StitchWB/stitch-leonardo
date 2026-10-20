@@ -1,0 +1,410 @@
+{
+  "schema": "stitch.plugin/v2",
+  "id": "stitch-leonardo",
+  "name": "Stitch Leonardo",
+  "version": "0.1.0",
+  "service": "stitch-leonardo",
+  "kind": "service",
+  "engine": {
+    "min": "0.3.0",
+    "api": 2
+  },
+  "depends": [],
+  "entry": {
+    "module": "stitch_leonardo"
+  },
+  "capabilities": [],
+  "outputs": [],
+  "signature": "",
+  "description": {
+    "ru": "Генерация изображений Leonardo AI через импортированные web-сессии: импорт cookie (ExLeo), баланс токенов, генерация (GraphQL Generate + поллинг), локальная история. Сессии хранятся в собственной SQLite плагина, секреты зашифрованы Fernet.",
+    "en": "Leonardo AI image generation over imported web sessions: cookie import (ExLeo), token balance, generation (GraphQL Generate + polling), local history. Sessions live in the plugin's own SQLite, secrets Fernet-encrypted."
+  },
+  "author": "StitchWB",
+  "category": "ai-tools",
+  "status": "beta",
+  "icon": "🎨",
+  "features": [
+    {
+      "title": {
+        "ru": "Импорт web-сессии Leonardo (cookie → Cognito JWT, better-auth)",
+        "en": "Leonardo web-session import (cookie → Cognito JWT, better-auth)"
+      },
+      "status": "beta"
+    },
+    {
+      "title": {
+        "ru": "Баланс токенов и статус сессии (GetTokenBalance)",
+        "en": "Token balance and session status (GetTokenBalance)"
+      },
+      "status": "beta"
+    },
+    {
+      "title": {
+        "ru": "Генерация изображений (GraphQL Generate, поллинг до COMPLETED)",
+        "en": "Image generation (GraphQL Generate, poll until COMPLETED)"
+      },
+      "status": "beta"
+    },
+    {
+      "title": {
+        "ru": "Локальная история генераций (своё SQLite, без удалённого фида)",
+        "en": "Local generation history (own SQLite, no remote feed)"
+      },
+      "status": "beta"
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2026-10-20",
+      "changes": [
+        {
+          "ru": "Первый релиз: импорт сессий, баланс, генерация, история; wire-шейпы из recon (генерация не проверена на живом API).",
+          "en": "Initial release: session import, balance, generation, history; wire shapes from recon (generation not live-verified)."
+        }
+      ]
+    }
+  ],
+  "generated_by": {
+    "tool": "stitch_plugin_tools",
+    "scaffold": 3
+  },
+  "contributions": {
+    "commands": [
+      {
+        "name": "health_check",
+        "readonly": true
+      },
+      {
+        "name": "leonardo_session_import",
+        "readonly": false,
+        "timeoutSeconds": 120
+      },
+      {
+        "name": "leonardo_accounts_list",
+        "readonly": true
+      },
+      {
+        "name": "leonardo_status",
+        "readonly": true,
+        "timeoutSeconds": 60
+      },
+      {
+        "name": "leonardo_generate",
+        "readonly": false,
+        "timeoutSeconds": 300
+      },
+      {
+        "name": "leonardo_history",
+        "readonly": true
+      },
+      {
+        "name": "leonardo_session_remove",
+        "readonly": false
+      }
+    ],
+    "ui": {
+      "kind": "declarative",
+      "tabs": [
+        {
+          "id": "stitch-leonardo",
+          "label": "stitch-leonardo.tab",
+          "icon": "Sparkles",
+          "page": "main"
+        }
+      ],
+      "page": {
+        "title": "stitch-leonardo.title",
+        "nodes": [
+          {
+            "kind": "heading",
+            "text": "stitch-leonardo.title",
+            "level": 1
+          },
+          {
+            "kind": "section",
+            "title": "stitch-leonardo.sessions.title",
+            "nodes": [
+              {
+                "kind": "field",
+                "field": "text",
+                "id": "imp-blob",
+                "label": "stitch-leonardo.sessions.blob",
+                "placeholder": "stitch-leonardo.sessions.blobPlaceholder"
+              },
+              {
+                "kind": "button",
+                "id": "imp-btn",
+                "label": "stitch-leonardo.sessions.import",
+                "command": "leonardo_session_import",
+                "refreshOnSuccess": ["accounts"],
+                "params": {
+                  "blob": ""
+                },
+                "paramsFrom": {
+                  "blob": "imp-blob"
+                },
+                "variant": "primary"
+              },
+              {
+                "kind": "table",
+                "id": "accounts",
+                "empty": "stitch-leonardo.sessions.empty",
+                "columns": [
+                  {
+                    "key": "email",
+                    "label": "stitch-leonardo.sessions.col.email"
+                  },
+                  {
+                    "key": "status",
+                    "label": "stitch-leonardo.sessions.col.status"
+                  },
+                  {
+                    "key": "balance",
+                    "label": "stitch-leonardo.sessions.col.balance"
+                  },
+                  {
+                    "key": "token_use",
+                    "label": "stitch-leonardo.sessions.col.tokenUse"
+                  },
+                  {
+                    "key": "exp",
+                    "label": "stitch-leonardo.sessions.col.exp"
+                  },
+                  {
+                    "key": "created_at",
+                    "label": "stitch-leonardo.sessions.col.created"
+                  }
+                ],
+                "source": {
+                  "command": "leonardo_accounts_list"
+                },
+                "rowActions": [
+                  {
+                    "id": "status-row",
+                    "label": "stitch-leonardo.sessions.refresh",
+                    "command": "leonardo_status",
+                    "paramsFromRow": {
+                      "accountId": "id"
+                    }
+                  },
+                  {
+                    "id": "remove-session-row",
+                    "label": "stitch-leonardo.sessions.remove",
+                    "command": "leonardo_session_remove",
+                    "variant": "danger",
+                    "paramsFromRow": {
+                      "accountId": "id"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "section",
+            "title": "stitch-leonardo.generate.title",
+            "nodes": [
+              {
+                "kind": "field",
+                "field": "select",
+                "id": "gen-model",
+                "label": "stitch-leonardo.generate.model",
+                "value": "nano-banana-2",
+                "options": [
+                  {
+                    "value": "nano-banana-2",
+                    "label": "stitch-leonardo.generate.modelNanoBanana2"
+                  }
+                ]
+              },
+              {
+                "kind": "field",
+                "field": "text",
+                "id": "gen-prompt",
+                "label": "stitch-leonardo.generate.prompt",
+                "placeholder": "stitch-leonardo.generate.promptPlaceholder"
+              },
+              {
+                "kind": "field",
+                "field": "text",
+                "id": "gen-width",
+                "label": "stitch-leonardo.generate.width",
+                "value": "1024"
+              },
+              {
+                "kind": "field",
+                "field": "text",
+                "id": "gen-height",
+                "label": "stitch-leonardo.generate.height",
+                "value": "1024"
+              },
+              {
+                "kind": "field",
+                "field": "text",
+                "id": "gen-quantity",
+                "label": "stitch-leonardo.generate.quantity",
+                "value": "1"
+              },
+              {
+                "kind": "button",
+                "id": "gen-btn",
+                "label": "stitch-leonardo.generate.btn",
+                "command": "leonardo_generate",
+                "refreshOnSuccess": ["generations", "accounts"],
+                "params": {
+                  "prompt": "",
+                  "model": "nano-banana-2",
+                  "width": 1024,
+                  "height": 1024,
+                  "quantity": 1
+                },
+                "paramsFrom": {
+                  "prompt": "gen-prompt",
+                  "model": "gen-model",
+                  "width": "gen-width",
+                  "height": "gen-height",
+                  "quantity": "gen-quantity"
+                },
+                "variant": "primary"
+              }
+            ]
+          },
+          {
+            "kind": "section",
+            "title": "stitch-leonardo.generations.title",
+            "nodes": [
+              {
+                "kind": "table",
+                "id": "generations",
+                "empty": "stitch-leonardo.generations.empty",
+                "columns": [
+                  {
+                    "key": "created_at",
+                    "label": "stitch-leonardo.generations.col.created"
+                  },
+                  {
+                    "key": "prompt",
+                    "label": "stitch-leonardo.generations.col.prompt"
+                  },
+                  {
+                    "key": "model",
+                    "label": "stitch-leonardo.generations.col.model"
+                  },
+                  {
+                    "key": "status",
+                    "label": "stitch-leonardo.generations.col.status"
+                  },
+                  {
+                    "key": "images",
+                    "label": "stitch-leonardo.generations.col.images"
+                  }
+                ],
+                "source": {
+                  "command": "leonardo_history"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "i18n": {
+      "ru": {
+        "stitch-leonardo": {
+          "title": "Stitch Leonardo — генерация изображений Leonardo AI",
+          "tab": "Leonardo",
+          "sessions": {
+            "title": "Сессии Leonardo",
+            "blob": "Cookie-блоб сессии (ExLeo: cookie=… / token=…)",
+            "blobPlaceholder": "cookie=__Secure-better-auth.session_data.0=…; …",
+            "import": "Импортировать сессию",
+            "empty": "Сессий нет — импортируйте cookie из app.leonardo.ai",
+            "col": {
+              "email": "Email",
+              "status": "Статус",
+              "balance": "Баланс",
+              "tokenUse": "Тип токена",
+              "exp": "Истекает (epoch)",
+              "created": "Создана"
+            },
+            "refresh": "Обновить баланс",
+            "remove": "Удалить"
+          },
+          "generate": {
+            "title": "Генерация",
+            "model": "Модель",
+            "modelNanoBanana2": "Nano Banana 2",
+            "prompt": "Промпт",
+            "promptPlaceholder": "a cat astronaut, cinematic lighting",
+            "width": "Ширина (64–2048)",
+            "height": "Высота (64–2048)",
+            "quantity": "Количество (1–4)",
+            "btn": "Сгенерировать"
+          },
+          "generations": {
+            "title": "История генераций",
+            "empty": "Генераций ещё не было",
+            "col": {
+              "created": "Время",
+              "prompt": "Промпт",
+              "model": "Модель",
+              "status": "Статус",
+              "images": "Картинок"
+            }
+          }
+        }
+      },
+      "en": {
+        "stitch-leonardo": {
+          "title": "Stitch Leonardo — Leonardo AI image generation",
+          "tab": "Leonardo",
+          "sessions": {
+            "title": "Leonardo sessions",
+            "blob": "Session cookie blob (ExLeo: cookie=… / token=…)",
+            "blobPlaceholder": "cookie=__Secure-better-auth.session_data.0=…; …",
+            "import": "Import session",
+            "empty": "No sessions — import a cookie from app.leonardo.ai",
+            "col": {
+              "email": "Email",
+              "status": "Status",
+              "balance": "Balance",
+              "tokenUse": "Token type",
+              "exp": "Expires (epoch)",
+              "created": "Created"
+            },
+            "refresh": "Refresh balance",
+            "remove": "Remove"
+          },
+          "generate": {
+            "title": "Generation",
+            "model": "Model",
+            "modelNanoBanana2": "Nano Banana 2",
+            "prompt": "Prompt",
+            "promptPlaceholder": "a cat astronaut, cinematic lighting",
+            "width": "Width (64–2048)",
+            "height": "Height (64–2048)",
+            "quantity": "Quantity (1–4)",
+            "btn": "Generate"
+          },
+          "generations": {
+            "title": "Generation history",
+            "empty": "No generations yet",
+            "col": {
+              "created": "Time",
+              "prompt": "Prompt",
+              "model": "Model",
+              "status": "Status",
+              "images": "Images"
+            }
+          }
+        }
+      }
+    },
+    "storage": {
+      "sqlite": true,
+      "migrations": "raw_sql"
+    }
+  }
+}
