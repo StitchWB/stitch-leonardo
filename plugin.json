@@ -2,7 +2,7 @@
   "schema": "stitch.plugin/v2",
   "id": "stitch-leonardo",
   "name": "Stitch Leonardo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "service": "stitch-leonardo",
   "kind": "service",
   "engine": {
@@ -55,6 +55,13 @@
     }
   ],
   "changelog": [
+    {
+      "version": "0.1.1",
+      "date": "2026-10-26",
+      "changes": [
+        "Refresh vendored plugin runtime for the current host RPC contract"
+      ]
+    },
     {
       "version": "0.1.0",
       "date": "2026-10-20",
